@@ -5,6 +5,9 @@ import { CloudUpload as UploadIcon, Security as SecurityIcon, Speed as SpeedIcon
 import axios from 'axios';
 import { AnalysisResponse, UploadResponse } from '../types/analysis';
 
+// Configure API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 interface UploadComponentProps {
   onAnalysisComplete: (result: any, id: string) => void;
 }
@@ -23,7 +26,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
       const formData = new FormData();
       formData.append('document', acceptedFiles[0]);
 
-      const uploadResponse = await axios.post<UploadResponse>('/api/upload', formData, {
+      const uploadResponse = await axios.post<UploadResponse>(`${API_BASE_URL}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -32,7 +35,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
       setUploadProgress('Analyzing document with AI...');
       const { fileId } = uploadResponse.data;
       
-      const analysisResponse = await axios.post<AnalysisResponse>(`/api/analysis/analyze/${fileId}`);
+      const analysisResponse = await axios.post<AnalysisResponse>(`${API_BASE_URL}/api/analysis/analyze/${fileId}`);
       onAnalysisComplete(analysisResponse.data.analysis, fileId);
     } catch (error: any) {
       console.error('Error:', error);

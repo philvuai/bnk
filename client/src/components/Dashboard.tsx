@@ -17,6 +17,9 @@ import {
 import { AnalysisResult } from '../types/analysis';
 import axios from 'axios';
 
+// Configure API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 interface DashboardProps {
   analysisResult: AnalysisResult;
   fileId: string;
@@ -27,11 +30,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, onReset }) => {
   const handleExportExcel = () => {
-    window.open(`/api/export/excel/${fileId}`, '_blank');
+    window.open(`${API_BASE_URL}/api/export/excel/${fileId}`, '_blank');
   };
 
   const handleExportCSV = () => {
-    window.open(`/api/export/csv/${fileId}`, '_blank');
+    window.open(`${API_BASE_URL}/api/export/csv/${fileId}`, '_blank');
   };
 
   const columns: GridColDef[] = [
