@@ -1,8 +1,12 @@
 # 🚀 Netlify Deployment Guide
 
-## Quick Fix for 404 Error
+## Quick Fix for Build Errors
 
-The 404 error occurs because Netlify needs specific configuration for React Single Page Applications. Follow these steps:
+If you're getting a 404 error or build failures, here are the solutions:
+
+### ❌ **Common Error: `ENOENT: no such file or directory, open '/opt/build/repo/client/client/package.json'`**
+
+**Solution**: The error occurs when Netlify can't find the package.json file. I've fixed this in the latest commit.
 
 ### ✅ **Step 1: Verify Repository Structure**
 

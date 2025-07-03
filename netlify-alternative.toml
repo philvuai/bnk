@@ -1,0 +1,14 @@
+# Alternative Netlify configuration
+# If the main netlify.toml doesn't work, rename this file to netlify.toml
+
+[build]
+  publish = "client/build"
+  command = "./build-client.sh"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
