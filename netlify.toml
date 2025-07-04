@@ -1,10 +1,13 @@
 [build]
   base = "client"
   publish = "client/build"
-  command = "npm install && npm run build"
+  command = "npm install && GENERATE_SOURCEMAP=false npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
+  GENERATE_SOURCEMAP = "false"
+  TSC_COMPILE_ON_ERROR = "true"
+  ESLINT_NO_DEV_ERRORS = "true"
 
 [[redirects]]
   from = "/*"

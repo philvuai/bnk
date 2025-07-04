@@ -8,7 +8,7 @@ import {
   Typography,
   Paper
 } from '@mui/material';
-import { DataGrid, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
   GetApp as ExportIcon,
@@ -45,7 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       headerName: 'Amount',
       width: 120,
       type: 'number',
-      valueFormatter: (params: GridValueFormatterParams) => {
+      valueFormatter: (params: any) => {
         const value = params.value as number;
         return `£${value?.toFixed(2) || '0.00'}`;
       }
@@ -57,7 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       headerName: 'Confidence',
       width: 100,
       type: 'number',
-      valueFormatter: (params: GridValueFormatterParams) => {
+      valueFormatter: (params: any) => {
         const value = params.value as number;
         return `${value || 0}%`;
       }
