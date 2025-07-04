@@ -4,18 +4,16 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Typography,
   Paper
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import {
   GetApp as ExportIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { AnalysisResult } from '../types/analysis';
-import axios from 'axios';
 
 // Configure API base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -112,8 +110,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       </Box>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -124,8 +122,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -136,8 +134,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -148,8 +146,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -160,12 +158,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Charts */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+        <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Category Distribution
@@ -190,8 +188,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </PieChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Amount by Category
@@ -211,8 +209,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
               </BarChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Transactions Table */}
       <Paper sx={{ p: 3 }}>
