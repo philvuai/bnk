@@ -25,16 +25,9 @@ router.post('/analyze/:fileId', async (req: any, res: any) => {
     const processor = new DocumentProcessor();
     const extractedText = await processor.processDocument(filePath, mimeType);
 
-    // Analyze with AI
+    // Analyze with AI (will automatically fallback if no API key)
     const analysisService = new AIAnalysisService();
-    let analysisResult;
-
-    try {
-      analysisResult = await analysisService.analyzeDocument(extractedText);
-    } catch (aiError) {
-      console.warn('AI analysis failed, falling back to pattern matching:', aiError);
-      analysisResult = await analysisService.fallbackAnalysis(extractedText);
-    }
+    const analysisResult = await analysisService.analyzeDocument(extractedText);
 
     // Store analysis result (in a real app, you'd store this in a database)
     const resultPath = path.join(process.cwd(), 'uploads', `${fileId}.analysis.json`);
