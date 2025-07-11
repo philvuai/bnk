@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import mammoth from 'mammoth';
 import csv from 'csv-parser';
-import pdfParse from 'pdf-parse';
+import PDFParser from 'pdf2json';
 
 export class DocumentProcessor {
   
@@ -30,35 +30,29 @@ export class DocumentProcessor {
     }
   }
 
-private async processPDF(filePath: string): Promise<string> {
-    try {
-      console.log('Processing PDF with pdf-parse:', filePath);
-      
-      // Read PDF file
-      const dataBuffer = fs.readFileSync(filePath);
-      
-      // Parse PDF and extract text
-      const data = await pdfParse(dataBuffer);
-      
-      const fileName = path.basename(filePath);
-      const fileSize = fs.statSync(filePath).size;
-      
-      console.log(`PDF processed successfully: ${fileName}`);
-      console.log(`Extracted text length: ${data.text.length} characters`);
-      
-      // Return extracted text if available
-      if (data.text && data.text.trim().length > 0) {
-        return data.text;
-      } else {
-        console.log('No text extracted from PDF, using fallback mock data.');
-        return this.generateMockBankStatementData(filePath);
-      }
-      
-    } catch (error) {
-      console.error('PDF processing error:', error);
-      console.log('PDF processing failed, using fallback mock data for demo.');
-      return this.generateMockBankStatementData(filePath);
-    }
+private processPDF(filePath: string): Promise<string> {
+    const pdfParser = new PDFParser();
+
+    return new Promise((resolve, reject) => {
+      pdfParser.on('pdfParser_dataError', err => {
+        console.error('PDF processing error:', err.parserError);
+        console.log('PDF processing failed, using fallback mock data for demo.');
+        resolve(this.generateMockBankStatementData(filePath));
+      });
+
+      pdfParser.on('pdfParser_dataReady', pdfData => {
+        const extractedText = pdfParser.getRawTextContent();
+        console.log(`Extracted text length: ${extractedText.length} characters`);
+        if (extractedText.trim().length > 0) {
+          resolve(extractedText);
+        } else {
+          console.log('No text extracted from PDF, using fallback mock data.');
+          resolve(this.generateMockBankStatementData(filePath));
+        }
+      });
+
+      pdfParser.loadPDF(filePath);
+    });
   }
 
   private async processWord(filePath: string): Promise<string> {
