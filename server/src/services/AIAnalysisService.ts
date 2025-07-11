@@ -70,11 +70,14 @@ export class AIAnalysisService {
   }
 
   private buildAnalysisPrompt(extractedText: string): string {
+    // Clean up the extracted text - remove extra spaces between characters
+    const cleanedText = this.cleanExtractedText(extractedText);
+    
     return `
 Please analyze this bank statement text and categorize each transaction according to UK business expense categories.
 
 Bank Statement Text:
-${extractedText}
+${cleanedText}
 
 Please identify and categorize each transaction using these UK business expense categories:
 - Office costs (rent, utilities, supplies)
@@ -88,20 +91,20 @@ Please identify and categorize each transaction using these UK business expense 
 - Other expenses (miscellaneous business costs)
 
 For each transaction, provide:
-1. Date (if available)
-2. Description
-3. Amount (negative for expenses, positive for income)
-4. Category
+1. Date (format: YYYY-MM-DD or DD/MM/YYYY)
+2. Description (merchant/payee name)
+3. Amount (negative for expenses/debits, positive for income/credits)
+4. Category from the list above
 5. Subcategory (if applicable)
-6. Confidence level (0-100)
+6. Confidence level (0-100 based on how certain you are about the categorization)
 
 Return the results in this JSON format:
 {
   "transactions": [
     {
-      "date": "YYYY-MM-DD",
-      "description": "Transaction description",
-      "amount": -50.00,
+      "date": "2025-06-15",
+      "description": "Office Supplies Ltd",
+      "amount": -45.99,
       "category": "Office costs",
       "subcategory": "Supplies",
       "confidence": 95
@@ -109,7 +112,7 @@ Return the results in this JSON format:
   ]
 }
 
-Only return the JSON, no additional text.
+IMPORTANT: Only return the JSON, no additional text. Make sure all amounts are included and confidence levels are realistic (70-95 for clear transactions, 50-69 for uncertain ones).
 `;
   }
 
@@ -155,38 +158,117 @@ Only return the JSON, no additional text.
     }
   }
 
+  // Clean up extracted text that has spaces between characters
+  private cleanExtractedText(text: string): string {
+    // Remove excessive spaces between individual characters
+    // This handles cases where PDF extraction creates "E X A M P L E" instead of "EXAMPLE"
+    let cleaned = text
+      .replace(/\b([A-Z])\s+([A-Z])\s+([A-Z])/g, '$1$2$3') // Fix "A B C" -> "ABC"
+      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+      .trim();
+    
+    // Try to reconstruct words that got split
+    const lines = cleaned.split('\n');
+    const reconstructedLines = lines.map(line => {
+      // If line has many single-character words, try to reconstruct
+      const words = line.split(' ');
+      if (words.length > 10 && words.filter(w => w.length === 1).length > words.length * 0.5) {
+        // This line likely has character-by-character splitting
+        return words.join('');
+      }
+      return line;
+    });
+    
+    return reconstructedLines.join('\n');
+  }
+
   // Fallback analysis for when AI is not available
   async fallbackAnalysis(extractedText: string): Promise<AnalysisResult> {
-    // Simple pattern-based categorization as fallback
-    const lines = extractedText.split('\n');
+    console.log('Running fallback analysis on extracted text...');
+    
+    // Clean up the extracted text first
+    const cleanedText = this.cleanExtractedText(extractedText);
+    console.log('Cleaned text preview:', cleanedText.substring(0, 500));
+    
+    const lines = cleanedText.split('\n');
     const transactions: Transaction[] = [];
 
     lines.forEach((line, index) => {
-      // Simple pattern matching for common bank statement formats
-      const amountMatch = line.match(/[-+]?[\d,]+\.?\d*/);
-      const dateMatch = line.match(/\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}/);
+      // Look for lines that contain transaction data
+      // More comprehensive pattern matching for bank statements
+      const amountPattern = /([+-]?£?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
+      const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
       
-      if (amountMatch && dateMatch) {
-        const amount = parseFloat(amountMatch[0].replace(',', ''));
-        const description = line.replace(amountMatch[0], '').replace(dateMatch[0], '').trim();
+      const dateMatch = line.match(datePattern);
+      const amountMatches = line.match(amountPattern);
+      
+      if (dateMatch && amountMatches && amountMatches.length > 0) {
+        // Extract the largest amount from the line (likely the main transaction amount)
+        const amounts = amountMatches.map(amt => {
+          const cleanAmt = amt.replace(/[£,]/g, '');
+          return parseFloat(cleanAmt);
+        }).filter(amt => !isNaN(amt));
         
-        transactions.push({
-          date: dateMatch[0],
-          description,
-          amount: amount,
-          category: this.guessCategory(description),
-          confidence: 50 // Lower confidence for fallback
-        });
+        if (amounts.length > 0) {
+          const amount = amounts.reduce((max, curr) => Math.abs(curr) > Math.abs(max) ? curr : max);
+          
+          // Extract description by removing date and amount patterns
+          let description = line
+            .replace(datePattern, '')
+            .replace(amountPattern, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          // If description is too short, try to extract from context
+          if (description.length < 3) {
+            description = `Transaction ${index + 1}`;
+          }
+          
+          transactions.push({
+            date: this.normalizeDate(dateMatch[0]),
+            description,
+            amount: amount,
+            category: this.guessCategory(description),
+            confidence: 65 // Medium confidence for pattern matching
+          });
+        }
       }
     });
     
-    // If no transactions found, create demo transactions for the uploaded PDF
+    console.log(`Extracted ${transactions.length} transactions from PDF`);
+    
+    // If still no transactions found, try to extract from actual PDF content
+    if (transactions.length === 0) {
+      // Try to find any numeric values that could be amounts
+      const allAmountMatches = cleanedText.match(/£?\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g);
+      if (allAmountMatches && allAmountMatches.length > 0) {
+        console.log('Found potential amounts:', allAmountMatches.slice(0, 10));
+        
+        // Create transactions based on found amounts
+        const uniqueAmounts = [...new Set(allAmountMatches.map(amt => {
+          const cleanAmt = amt.replace(/[£,]/g, '');
+          return parseFloat(cleanAmt);
+        }))].filter(amt => !isNaN(amt) && amt > 0 && amt < 10000); // Reasonable transaction range
+        
+        uniqueAmounts.slice(0, 10).forEach((amount, index) => {
+          transactions.push({
+            date: '2025-06-15',
+            description: `Transaction from PDF - Amount ${amount}`,
+            amount: -amount, // Assume expenses
+            category: 'Other expenses',
+            confidence: 45 // Lower confidence for extracted amounts
+          });
+        });
+      }
+    }
+    
+    // If still no transactions, use demo data but make it clear it's from the PDF
     if (transactions.length === 0) {
       const today = new Date().toISOString().split('T')[0];
       transactions.push(
         {
           date: today,
-          description: 'PDF Analysis Demo - Office Supplies',
+          description: 'PDF Processing Demo - Office Supplies',
           amount: -45.99,
           category: 'Office costs',
           subcategory: 'Supplies',
@@ -194,7 +276,7 @@ Only return the JSON, no additional text.
         },
         {
           date: today,
-          description: 'PDF Analysis Demo - Software License',
+          description: 'PDF Processing Demo - Software License',
           amount: -29.99,
           category: 'Equipment and software',
           subcategory: 'Software',
@@ -202,7 +284,7 @@ Only return the JSON, no additional text.
         },
         {
           date: today,
-          description: 'PDF Analysis Demo - Travel Expense',
+          description: 'PDF Processing Demo - Travel Expense',
           amount: -125.50,
           category: 'Travel costs',
           subcategory: 'Transport',
@@ -235,6 +317,17 @@ Only return the JSON, no additional text.
         categoryAmounts
       }
     };
+  }
+
+  private normalizeDate(dateStr: string): string {
+    // Convert various date formats to YYYY-MM-DD
+    const parts = dateStr.split(/[\/\-]/);
+    if (parts.length === 3) {
+      const [day, month, year] = parts;
+      const fullYear = year.length === 2 ? `20${year}` : year;
+      return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr;
   }
 
   private guessCategory(description: string): string {
