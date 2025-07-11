@@ -50,6 +50,7 @@ export class AIAnalysisService {
       // Generate content using Gemini
       const result = await model.generateContent({
         contents: [{
+          role: 'user',
           parts: [{
             text: `You are a financial analysis expert specializing in UK business expense categorization. Analyze bank statements and categorize transactions according to UK business expense categories.\n\n${prompt}`
           }]
