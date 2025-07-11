@@ -42,6 +42,7 @@ export class AIAnalysisService {
     }
     
     try {
+      console.log('Using Gemini AI for analysis...');
       const prompt = this.buildAnalysisPrompt(extractedText);
       
       // Get the generative model
@@ -58,14 +59,18 @@ export class AIAnalysisService {
       });
 
       const analysisText = result.response.text();
+      console.log('Raw AI response:', analysisText);
+      
       if (!analysisText) {
-        throw new Error('No analysis result received from AI');
+        console.log('No analysis result received from AI, using fallback');
+        return await this.fallbackAnalysis(extractedText);
       }
 
       return this.parseAnalysisResult(analysisText);
     } catch (error) {
       console.error('AI analysis error:', error);
-      throw new Error(`Failed to analyze document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log('AI analysis failed, using fallback analysis');
+      return await this.fallbackAnalysis(extractedText);
     }
   }
 
