@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import csv from 'csv-parser';
 
@@ -31,9 +30,16 @@ export class DocumentProcessor {
   }
 
 private async processPDF(filePath: string): Promise<string> {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
-    return data.text;
+    try {
+      const dataBuffer = fs.readFileSync(filePath);
+      // Use dynamic import to avoid initialization issues
+      const pdfParse = (await import('pdf-parse')).default;
+      const data = await pdfParse(dataBuffer);
+      return data.text;
+    } catch (error) {
+      console.error('PDF parsing error:', error);
+      throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   private async processWord(filePath: string): Promise<string> {
