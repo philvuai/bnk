@@ -14,9 +14,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { AnalysisResult } from '../types/analysis';
-
-// Configure API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+import { securityConfig } from '../config/security';
 
 interface DashboardProps {
   analysisResult: AnalysisResult;
@@ -28,11 +26,21 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, onReset }) => {
   const handleExportExcel = () => {
-    window.open(`${API_BASE_URL}/api/export/excel/${fileId}`, '_blank');
+    // Validate fileId before export
+    if (!fileId || typeof fileId !== 'string') {
+      console.error('Invalid file ID for export');
+      return;
+    }
+    window.open(`${securityConfig.apiUrl}/api/export/excel/${encodeURIComponent(fileId)}`, '_blank');
   };
 
   const handleExportCSV = () => {
-    window.open(`${API_BASE_URL}/api/export/csv/${fileId}`, '_blank');
+    // Validate fileId before export
+    if (!fileId || typeof fileId !== 'string') {
+      console.error('Invalid file ID for export');
+      return;
+    }
+    window.open(`${securityConfig.apiUrl}/api/export/csv/${encodeURIComponent(fileId)}`, '_blank');
   };
 
   const columns: GridColDef[] = [
@@ -106,7 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
             startIcon={<RefreshIcon />}
             onClick={onReset}
           >
-            Analyze New File
+            Analyse New File
           </Button>
         </Box>
       </Box>
@@ -129,7 +137,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Categorized
+                Categorised
               </Typography>
               <Typography variant="h4" component="div">
                 {analysisResult.summary.categorizedTransactions}

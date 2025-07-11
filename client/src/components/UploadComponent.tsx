@@ -4,9 +4,7 @@ import { Box, Button, Typography, Container, CircularProgress, Alert } from '@mu
 import { CloudUpload as UploadIcon, Security as SecurityIcon, Speed as SpeedIcon, Analytics as AnalyticsIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { AnalysisResponse, UploadResponse } from '../types/analysis';
-
-// Configure API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+import { securityConfig, validateFile, getSecureHeaders } from '../config/security';
 
 interface UploadComponentProps {
   onAnalysisComplete: (result: any, id: string) => void;
@@ -20,26 +18,55 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsLoading(true);
     setError(null);
-    setUploadProgress('Uploading file...');
     
     try {
+      // Validate file before upload
+      const file = acceptedFiles[0];
+      if (!file) {
+        throw new Error('No file selected');
+      }
+      
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+      
+      setUploadProgress('Uploading file...');
+      
       const formData = new FormData();
-      formData.append('document', acceptedFiles[0]);
+      formData.append('document', file);
 
-      const uploadResponse = await axios.post<UploadResponse>(`${API_BASE_URL}/api/upload`, formData, {
+      const uploadResponse = await axios.post<UploadResponse>(`${securityConfig.apiUrl}/api/upload`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+          ...getSecureHeaders()
+        },
+        timeout: 30000, // 30 second timeout
+        withCredentials: false // Prevent cookies from being sent
       });
       
-      setUploadProgress('Analyzing document with AI...');
+      setUploadProgress('Analysing document with AI...');
       const { fileId } = uploadResponse.data;
       
-      const analysisResponse = await axios.post<AnalysisResponse>(`${API_BASE_URL}/api/analysis/analyze/${fileId}`);
+      if (!fileId) {
+        throw new Error('Invalid response from server');
+      }
+      
+      const analysisResponse = await axios.post<AnalysisResponse>(`${securityConfig.apiUrl}/api/analysis/analyze/${fileId}`, {}, {
+        headers: getSecureHeaders(),
+        timeout: 60000, // 60 second timeout for analysis
+        withCredentials: false
+      });
+      
+      if (!analysisResponse.data.analysis) {
+        throw new Error('Invalid analysis response from server');
+      }
+      
       onAnalysisComplete(analysisResponse.data.analysis, fileId);
     } catch (error: any) {
       console.error('Error:', error);
-      setError(error.response?.data?.error || 'An error occurred while processing your file');
+      const errorMessage = error.response?.data?.error || error.message || 'An error occurred while processing your file';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
       setUploadProgress('');
@@ -67,7 +94,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
           AI-Powered Bank Statement Analysis
         </Typography>
         <Typography variant="h5" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
-          Automatically categorize your business transactions with advanced AI
+          Automatically categorise your business transactions with advanced AI
         </Typography>
         
         {/* Feature Cards */}
@@ -90,7 +117,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
             <AnalyticsIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
             <Typography variant="h6" gutterBottom>Accurate</Typography>
             <Typography variant="body2" color="text.secondary">
-              AI-powered categorization for UK business expenses
+              AI-powered categorisation for UK business expenses
             </Typography>
           </Box>
         </Box>
@@ -181,7 +208,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
           </Typography>
           <Typography variant="body2" color="text.secondary">→</Typography>
           <Typography variant="body2" color="text.secondary">
-            2. AI analyzes and categorizes transactions
+            2. AI analyses and categorises transactions
           </Typography>
           <Typography variant="body2" color="text.secondary">→</Typography>
           <Typography variant="body2" color="text.secondary">
