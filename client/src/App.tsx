@@ -39,13 +39,6 @@ function App() {
   const [fileId, setFileId] = useState<string | null>(null);
 
   const handleAnalysisComplete = (result: AnalysisResult, id: string) => {
-    console.log('=== APP.TSX DEBUG ===');
-    console.log('Analysis result received:', result);
-    console.log('File ID:', id);
-    console.log('Type of result:', typeof result);
-    console.log('Is result null?', result === null);
-    console.log('Is result undefined?', result === undefined);
-    console.log('=== END APP.TSX DEBUG ===');
     setAnalysisResult(result);
     setFileId(id);
   };
@@ -84,12 +77,6 @@ function App() {
         </AppBar>
         
         <Container maxWidth="xl" sx={{ py: 4 }}>
-          <div style={{ padding: '20px', background: '#f0f0f0', margin: '20px 0' }}>
-            <h2>App Debug Info</h2>
-            <p>Analysis Result: {analysisResult ? 'EXISTS' : 'NULL'}</p>
-            <p>File ID: {fileId || 'NULL'}</p>
-            <button onClick={() => console.log('Current analysisResult:', analysisResult)}>Log Analysis Result</button>
-          </div>
           {!analysisResult ? (
             <UploadComponent onAnalysisComplete={handleAnalysisComplete} />
           ) : (

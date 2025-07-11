@@ -14,7 +14,6 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { AnalysisResult } from '../types/analysis';
-import { DebugDashboard } from './DebugDashboard';
 
 // Configure API base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -45,9 +44,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       width: 120,
       type: 'number',
       valueFormatter: (params: any) => {
-        console.log('Amount formatter - params:', params);
-        const value = params.value as number;
-        console.log('Amount formatter - value:', value, 'type:', typeof value);
+        // params is the raw value, not an object with .value property
+        const value = params as number;
         return `£${(value || 0).toFixed(2)}`;
       }
     },
@@ -59,23 +57,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       width: 100,
       type: 'number',
       valueFormatter: (params: any) => {
-        console.log('Confidence formatter - params:', params);
-        const value = params.value as number;
-        console.log('Confidence formatter - value:', value, 'type:', typeof value);
+        // params is the raw value, not an object with .value property
+        const value = params as number;
         return `${value || 0}%`;
       }
     }
   ];
 
-  const rows = analysisResult.transactions.map((transaction, index) => {
-    console.log(`Row ${index}:`, transaction);
-    return {
-      id: index,
-      ...transaction
-    };
-  });
-  
-  console.log('Final rows for DataGrid:', rows);
+  const rows = analysisResult.transactions.map((transaction, index) => ({
+    id: index,
+    ...transaction
+  }));
 
   const pieData = Object.entries(analysisResult.summary.categoryBreakdown).map(([category, count]) => ({
     name: category,
@@ -118,9 +110,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
           </Button>
         </Box>
       </Box>
-
-      {/* Debug Section */}
-      <DebugDashboard analysisResult={analysisResult} />
 
       {/* Summary Cards */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>

@@ -36,13 +36,6 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
       const { fileId } = uploadResponse.data;
       
       const analysisResponse = await axios.post<AnalysisResponse>(`${API_BASE_URL}/api/analysis/analyze/${fileId}`);
-      
-      console.log('=== UPLOAD COMPONENT DEBUG ===');
-      console.log('Analysis response:', analysisResponse.data);
-      console.log('Analysis result:', analysisResponse.data.analysis);
-      console.log('Analysis result type:', typeof analysisResponse.data.analysis);
-      console.log('=== END UPLOAD COMPONENT DEBUG ===');
-      
       onAnalysisComplete(analysisResponse.data.analysis, fileId);
     } catch (error: any) {
       console.error('Error:', error);
