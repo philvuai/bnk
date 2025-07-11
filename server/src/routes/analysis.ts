@@ -29,6 +29,11 @@ router.post('/analyze/:fileId', async (req: any, res: any) => {
     const analysisService = new AIAnalysisService();
     const analysisResult = await analysisService.analyzeDocument(extractedText);
 
+    console.log('Analysis result summary:');
+    console.log(`- Total transactions: ${analysisResult.transactions.length}`);
+    console.log(`- First transaction:`, analysisResult.transactions[0]);
+    console.log(`- Total amount: ${analysisResult.summary.totalAmount}`);
+
     // Store analysis result (in a real app, you'd store this in a database)
     const resultPath = path.join(process.cwd(), 'uploads', `${fileId}.analysis.json`);
     fs.writeFileSync(resultPath, JSON.stringify(analysisResult, null, 2));
