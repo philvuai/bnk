@@ -36,21 +36,37 @@ private processPDF(filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
       pdfParser.on('pdfParser_dataError', err => {
         console.error('PDF processing error:', err.parserError);
-        console.log('PDF processing failed, using fallback mock data for demo.');
-        resolve(this.generateMockBankStatementData(filePath));
+        reject(new Error(`Failed to process PDF: ${err.parserError}`));
       });
 
       pdfParser.on('pdfParser_dataReady', pdfData => {
-        const extractedText = pdfParser.getRawTextContent();
-        console.log(`Extracted text length: ${extractedText.length} characters`);
-        if (extractedText.trim().length > 0) {
-          resolve(extractedText);
-        } else {
-          console.log('No text extracted from PDF, using fallback mock data.');
-          resolve(this.generateMockBankStatementData(filePath));
+        try {
+          // Try to get raw text content first
+          let extractedText = pdfParser.getRawTextContent();
+          console.log(`Raw text extraction - length: ${extractedText.length} characters`);
+          
+          // If no raw text, try to parse the PDF data structure
+          if (!extractedText || extractedText.trim().length === 0) {
+            console.log('No raw text found, attempting to parse PDF data structure...');
+            extractedText = this.extractTextFromPDFData(pdfData);
+            console.log(`Structured text extraction - length: ${extractedText.length} characters`);
+          }
+          
+          if (extractedText && extractedText.trim().length > 0) {
+            console.log('Successfully extracted text from PDF');
+            console.log('First 200 characters:', extractedText.substring(0, 200));
+            resolve(extractedText);
+          } else {
+            console.error('No text content could be extracted from PDF');
+            reject(new Error('PDF contains no extractable text content. This may be a scanned/image-based PDF that requires OCR processing.'));
+          }
+        } catch (error) {
+          console.error('Error processing PDF data:', error);
+          reject(new Error(`Failed to extract text from PDF: ${error instanceof Error ? error.message : 'Unknown error'}`));
         }
       });
 
+      console.log('Starting PDF processing for:', filePath);
       pdfParser.loadPDF(filePath);
     });
   }
@@ -81,6 +97,44 @@ private processPDF(filePath: string): Promise<string> {
         })
         .on('error', reject);
     });
+  }
+
+  // Extract text from PDF data structure when getRawTextContent() fails
+  private extractTextFromPDFData(pdfData: any): string {
+    try {
+      let extractedText = '';
+      
+      if (pdfData && pdfData.Pages && Array.isArray(pdfData.Pages)) {
+        console.log(`PDF has ${pdfData.Pages.length} pages`);
+        
+        for (let pageIndex = 0; pageIndex < pdfData.Pages.length; pageIndex++) {
+          const page = pdfData.Pages[pageIndex];
+          console.log(`Processing page ${pageIndex + 1}`);
+          
+          if (page.Texts && Array.isArray(page.Texts)) {
+            console.log(`Page ${pageIndex + 1} has ${page.Texts.length} text elements`);
+            
+            for (const textElement of page.Texts) {
+              if (textElement.R && Array.isArray(textElement.R)) {
+                for (const textRun of textElement.R) {
+                  if (textRun.T) {
+                    // Decode the text (it may be URL-encoded)
+                    const decodedText = decodeURIComponent(textRun.T);
+                    extractedText += decodedText + ' ';
+                  }
+                }
+              }
+            }
+            extractedText += '\n'; // Add newline after each page
+          }
+        }
+      }
+      
+      return extractedText.trim();
+    } catch (error) {
+      console.error('Error extracting text from PDF data structure:', error);
+      return '';
+    }
   }
 
   // Generate realistic mock bank statement data for demo
