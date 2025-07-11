@@ -123,14 +123,43 @@ IMPORTANT: Only return the JSON, no additional text. Make sure all amounts are i
 
   private parseAnalysisResult(analysisText: string): AnalysisResult {
     try {
+      console.log('Attempting to parse AI response...');
+      
+      // Extract JSON from the response, handling code blocks
+      let jsonText = analysisText;
+      
+      // Remove code block markers if present
+      jsonText = jsonText.replace(/```json\s*/, '').replace(/```\s*$/, '');
+      
       // Extract JSON from the response
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('No valid JSON found in analysis result');
         throw new Error('No valid JSON found in analysis result');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
-      const transactions: Transaction[] = parsed.transactions || [];
+      let jsonString = jsonMatch[0];
+      
+      // Try to fix common JSON formatting issues
+      jsonString = this.fixMalformedJson(jsonString);
+      
+      console.log('Attempting to parse cleaned JSON...');
+      const parsed = JSON.parse(jsonString);
+      
+      let transactions: Transaction[] = parsed.transactions || [];
+      
+      // Clean up transactions - remove any with missing required fields
+      transactions = transactions.filter(t => 
+        t.date && t.description && (t.amount !== undefined && t.amount !== null) && t.category
+      );
+      
+      // Ensure all transactions have confidence values
+      transactions = transactions.map(t => ({
+        ...t,
+        confidence: t.confidence || 50 // Default confidence if missing
+      }));
+      
+      console.log(`Successfully parsed ${transactions.length} transactions`);
 
       // Calculate summary statistics
       const totalTransactions = transactions.length;
@@ -159,6 +188,7 @@ IMPORTANT: Only return the JSON, no additional text. Make sure all amounts are i
       };
     } catch (error) {
       console.error('Error parsing analysis result:', error);
+      console.error('Raw analysis text:', analysisText);
       throw new Error('Failed to parse AI analysis result');
     }
   }
@@ -322,6 +352,73 @@ IMPORTANT: Only return the JSON, no additional text. Make sure all amounts are i
         categoryAmounts
       }
     };
+  }
+
+  private fixMalformedJson(jsonString: string): string {
+    console.log('Attempting to fix malformed JSON...');
+    
+    // Remove any trailing commas and fix common JSON issues
+    let fixed = jsonString
+      .replace(/,\s*}/g, '}') // Remove trailing commas before closing braces
+      .replace(/,\s*]/g, ']') // Remove trailing commas before closing brackets
+      .replace(/}{/g, '},{') // Fix missing commas between objects
+      .replace(/"(\w+)"\s*:/g, '"$1":') // Ensure proper colon spacing
+      .replace(/:\s*,/g, ': null,') // Fix missing values
+      .replace(/,\s*,/g, ',') // Remove duplicate commas
+      .replace(/"\s*"(\w+)"/g, '"$1"') // Fix broken quoted strings
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    // Try to extract a valid transactions array by parsing line by line
+    const lines = fixed.split('\n');
+    const transactionObjects: any[] = [];
+    let currentTransaction: any = {};
+    let inTransaction = false;
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      // Start of a transaction object
+      if (trimmed === '{' && !inTransaction) {
+        inTransaction = true;
+        currentTransaction = {};
+      } 
+      // End of a transaction object
+      else if (trimmed === '}' || trimmed === '},') {
+        if (inTransaction && Object.keys(currentTransaction).length > 0) {
+          transactionObjects.push(currentTransaction);
+          currentTransaction = {};
+        }
+        inTransaction = false;
+      }
+      // Property line
+      else if (inTransaction && trimmed.includes(':')) {
+        const match = trimmed.match(/"(\w+)"\s*:\s*(.+?)(?:,\s*$|$)/);
+        if (match) {
+          const [, key, value] = match;
+          let cleanValue = value.replace(/,$/, '').trim();
+          
+          // Parse the value
+          if (cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+            currentTransaction[key] = cleanValue.slice(1, -1);
+          } else if (!isNaN(parseFloat(cleanValue))) {
+            currentTransaction[key] = parseFloat(cleanValue);
+          } else {
+            currentTransaction[key] = cleanValue;
+          }
+        }
+      }
+    }
+    
+    // If we found transactions, reconstruct the JSON
+    if (transactionObjects.length > 0) {
+      const reconstructed = {
+        transactions: transactionObjects
+      };
+      return JSON.stringify(reconstructed);
+    }
+    
+    return fixed;
   }
 
   private normalizeDate(dateStr: string): string {
