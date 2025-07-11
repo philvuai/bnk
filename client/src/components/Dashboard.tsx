@@ -45,8 +45,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       width: 120,
       type: 'number',
       valueFormatter: (params: any) => {
+        console.log('Amount formatter - params:', params);
         const value = params.value as number;
-        return `£${value?.toFixed(2) || '0.00'}`;
+        console.log('Amount formatter - value:', value, 'type:', typeof value);
+        return `£${(value || 0).toFixed(2)}`;
       }
     },
     { field: 'category', headerName: 'Category', width: 180 },
@@ -57,16 +59,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
       width: 100,
       type: 'number',
       valueFormatter: (params: any) => {
+        console.log('Confidence formatter - params:', params);
         const value = params.value as number;
+        console.log('Confidence formatter - value:', value, 'type:', typeof value);
         return `${value || 0}%`;
       }
     }
   ];
 
-  const rows = analysisResult.transactions.map((transaction, index) => ({
-    id: index,
-    ...transaction
-  }));
+  const rows = analysisResult.transactions.map((transaction, index) => {
+    console.log(`Row ${index}:`, transaction);
+    return {
+      id: index,
+      ...transaction
+    };
+  });
+  
+  console.log('Final rows for DataGrid:', rows);
 
   const pieData = Object.entries(analysisResult.summary.categoryBreakdown).map(([category, count]) => ({
     name: category,
