@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface Transaction {
   date: string;
@@ -21,48 +21,42 @@ export interface AnalysisResult {
 }
 
 export class AIAnalysisService {
-  private openai: OpenAI | null = null;
+  private gemini: GoogleGenerativeAI | null = null;
   private hasApiKey: boolean;
 
   constructor() {
-    this.hasApiKey = !!process.env.OPENAI_API_KEY;
+    this.hasApiKey = !!process.env.GEMINI_API_KEY;
     
     if (this.hasApiKey) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     } else {
-      console.warn('OpenAI API key not configured. Using fallback analysis only.');
+      console.warn('Gemini API key not configured. Using fallback analysis only.');
     }
   }
 
   async analyzeDocument(extractedText: string): Promise<AnalysisResult> {
     // If no API key, use fallback analysis
-    if (!this.hasApiKey || !this.openai) {
-      console.log('No OpenAI API key available, using fallback analysis');
+    if (!this.hasApiKey || !this.gemini) {
+      console.log('No Gemini API key available, using fallback analysis');
       return await this.fallbackAnalysis(extractedText);
     }
     
     try {
       const prompt = this.buildAnalysisPrompt(extractedText);
       
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a financial analysis expert specializing in UK business expense categorization. Analyze bank statements and categorize transactions according to UK business expense categories.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
+      // Get the generative model
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      
+      // Generate content using Gemini
+      const result = await model.generateContent({
+        contents: [{
+          parts: [{
+            text: `You are a financial analysis expert specializing in UK business expense categorization. Analyze bank statements and categorize transactions according to UK business expense categories.\n\n${prompt}`
+          }]
+        }]
       });
 
-      const analysisText = response.choices[0]?.message?.content;
+      const analysisText = result.response.text();
       if (!analysisText) {
         throw new Error('No analysis result received from AI');
       }
