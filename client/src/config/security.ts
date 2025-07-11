@@ -8,8 +8,8 @@ const validateEnvironment = () => {
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars);
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    console.warn('Missing environment variables:', missingVars);
+    console.warn('Using default values for missing variables');
   }
 };
 
@@ -106,11 +106,23 @@ export const sanitiseInput = (input: string): string => {
 };
 
 // Generate secure headers for API requests
-export const getSecureHeaders = (): Record<string, string> => {
-  return {
-    'Content-Type': 'application/json',
+export const getSecureHeaders = (contentType?: string): Record<string, string> => {
+  const headers: Record<string, string> = {
     'X-Requested-With': 'XMLHttpRequest',
-    ...securityConfig.securityHeaders
+  };
+  
+  // Only add Content-Type if specified
+  if (contentType) {
+    headers['Content-Type'] = contentType;
+  }
+  
+  return headers;
+};
+
+// Generate secure headers for file uploads (multipart/form-data)
+export const getFileUploadHeaders = (): Record<string, string> => {
+  return {
+    'X-Requested-With': 'XMLHttpRequest',
   };
 };
 

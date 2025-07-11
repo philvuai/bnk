@@ -4,7 +4,7 @@ import { Box, Button, Typography, Container, CircularProgress, Alert } from '@mu
 import { CloudUpload as UploadIcon, Security as SecurityIcon, Speed as SpeedIcon, Analytics as AnalyticsIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { AnalysisResponse, UploadResponse } from '../types/analysis';
-import { securityConfig, validateFile, getSecureHeaders } from '../config/security';
+import { securityConfig, validateFile, getSecureHeaders, getFileUploadHeaders } from '../config/security';
 
 interface UploadComponentProps {
   onAnalysisComplete: (result: any, id: string) => void;
@@ -37,10 +37,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({ onAnalysisComp
       formData.append('document', file);
 
       const uploadResponse = await axios.post<UploadResponse>(`${securityConfig.apiUrl}/api/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...getSecureHeaders()
-        },
+        headers: getFileUploadHeaders(),
         timeout: 30000, // 30 second timeout
         withCredentials: false // Prevent cookies from being sent
       });
