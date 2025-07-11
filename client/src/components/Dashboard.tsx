@@ -14,6 +14,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { AnalysisResult } from '../types/analysis';
+import { DebugDashboard } from './DebugDashboard';
 
 // Configure API base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -108,6 +109,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ analysisResult, fileId, on
           </Button>
         </Box>
       </Box>
+
+      {/* Debug Section */}
+      <DebugDashboard analysisResult={analysisResult} />
 
       {/* Summary Cards */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
